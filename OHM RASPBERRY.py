@@ -22,7 +22,12 @@ EndCom = "\xff\xff\xff"
 
 
 def replaceerro(args):
-		return args.encode('iso-8859-1').replace(',1 %','').replace(',2 %','').replace(',3 %','').replace(',4 %','').replace(',5 %','').replace(',6 %','').replace(',7 %','').replace(',8 %','').replace(',9 %','').replace(',0 %','')
+	dados=args
+	i=0
+	while i < 10:	
+		dados = dados.encode('iso-8859-1').replace(','+str(i)+' %','')		
+		i+=1
+	return dados
 			
 
 def preenchertela():	
@@ -82,6 +87,5 @@ def preenchertela():
 					#gpu core load"
 					ser.write("gpumemusage.val="+replaceerro(dados['Value'])+""+EndCom)
 					
-					
 while(True): 			
-	preenchertela()
+ 	preenchertela()					

@@ -1,0 +1,6 @@
+D:\projeto\openhardwaremonitor-master-original\Bin\Debug\OpenHardwareMonitorLib.dll
+D:\projeto\openhardwaremonitor-master-original\Bin\Debug\OpenHardwareMonitorLib.pdb
+D:\projeto\openhardwaremonitor-master-original\obj\Debug\OpenHardwareMonitorLib.csprojAssemblyReference.cache
+D:\projeto\openhardwaremonitor-master-original\obj\Debug\OpenHardwareMonitorLib.csproj.CoreCompileInputs.cache
+D:\projeto\openhardwaremonitor-master-original\obj\Debug\OpenHardwareMonitorLib.dll
+D:\projeto\openhardwaremonitor-master-original\obj\Debug\OpenHardwareMonitorLib.pdb

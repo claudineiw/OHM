@@ -30,8 +30,7 @@ def replaceerro(args):
 def code(args):
 	return args.encode('iso-8859-1')	
 
-def preenchertela():	
-		
+def preenchertela():		
 		response = urllib2.urlopen(url) 
 		jsond = json.loads(response.read())		 
 		for dados in jsond:
@@ -91,5 +90,13 @@ def preenchertela():
 					ser.write("gpumemusage.val="+replaceerro(valor)+""+EndCom)
 					
 while(True): 
-	ser = iniciarSerial()			
- 	preenchertela()					
+	ser = iniciarSerial()	
+	ser.write('sendme'+EndCom)
+	if 'x00' in (repr(ser.readline()).encode('iso-8859-1')):		
+ 		preenchertela()	
+	else:
+	    ser.write('sendme'+EndCom)
+	    print (repr(ser.readline()).encode('iso-8859-1'))
+	
+
+					

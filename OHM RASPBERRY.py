@@ -7,18 +7,16 @@ import time
 import serial
 
 url = ("http://192.168.2.235:8085/data.json") #url dados pc
-
-
-ser = serial.Serial(port='/dev/ttyS0', #porta comunicação raspberry tela nextion
-  baudrate = 9600,
-  parity=serial.PARITY_NONE,
-  stopbits=serial.STOPBITS_ONE,
-  bytesize=serial.EIGHTBITS,
-  timeout=1
-)
-
 EndCom = "\xff\xff\xff"
 
+def iniciarSerial():
+	return serial.Serial(port='/dev/ttyS0', #porta comunicação raspberry tela nextion
+  	baudrate = 9600,
+  	parity=serial.PARITY_NONE,
+  	stopbits=serial.STOPBITS_ONE,
+  	bytesize=serial.EIGHTBITS,
+  	timeout=1
+	)
 
 
 def replaceerro(args):
@@ -28,64 +26,70 @@ def replaceerro(args):
 		dados = dados.encode('iso-8859-1').replace(','+str(i)+' %','')		
 		i+=1
 	return dados
-			
+
+def code(args):
+	return args.encode('iso-8859-1')	
 
 def preenchertela():	
+		
 		response = urllib2.urlopen(url) 
 		jsond = json.loads(response.read())		 
 		for dados in jsond:
 			if 'Value' in json.dumps(jsond[dados['id']]):
-		        	if dados['id']==28:
-				   #WaterCooler rpm                            
-					ser.write("waterrpm.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==39:
+				valor = dados['Value']
+				id = dados['id']
+		                if id==28:
+				        #WaterCooler rpm                            
+					ser.write("waterrpm.txt=\""+code(valor)+"\""+EndCom)				
+				elif id==39:
 					#CPU Core #1"	                              
-					ser.write("cpucore1.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==40:
+					ser.write("cpucore1.txt=\""+code(valor)+"\""+EndCom)				
+				elif id==40:
 					#CPU Core #2"	                              
-					ser.write("cpucore2.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==41:
+					ser.write("cpucore2.txt=\""+code(valor)+"\""+EndCom)					
+				elif id==41:
 					#CPU Core #3"	                              
-					ser.write("cpucore3.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==42:
+					ser.write("cpucore3.txt=\""+code(valor)+"\""+EndCom)							
+				elif id==42:
 					#CPU Core #4"	                              
-					ser.write("cpucore4.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==43:
+					ser.write("cpucore4.txt=\""+code(valor)+"\""+EndCom)									
+				elif id==43:
 					#CPU Core #5"	                              
-					ser.write("cpucore5.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==44:
+					ser.write("cpucore5.txt=\""+code(valor)+"\""+EndCom)										
+				elif id==44:
 					#CPU Core #6"	                              
-					ser.write("cpucore6.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==52:
+					ser.write("cpucore6.txt=\""+code(valor)+"\""+EndCom)														
+				elif id==52:
 					#cpu package 36 C"	                              
-					ser.write("cputemp.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==54:
+					ser.write("cputemp.txt=\""+code(valor)+"\""+EndCom)																
+				elif id==54:
 					#cpu total usage"
-					ser.write("cpuusage.val="+replaceerro(dados['Value'])+""+EndCom)
-				if dados['id']==74:
+					ser.write("cpuusage.val="+replaceerro(valor)+""+EndCom)																		
+				elif id==74:
 					#gpu core"	                              
-					ser.write("gpucore.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==75:
+					ser.write("gpucore.txt=\""+code(valor)+"\""+EndCom)
+				elif id==75:
 					#gpumemory"	                              
-					ser.write("gpumemory.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==76:
+					ser.write("gpumemory.txt=\""+code(valor)+"\""+EndCom)
+				elif id==76:
 					#gpu shader"	                              
-					ser.write("gpushader.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==78:
+					ser.write("gpushader.txt=\""+code(valor)+"\""+EndCom)
+				elif id==78:
 					#gpu core c"	                              
-					ser.write("tempgpu.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
-				if dados['id']==80:
+					ser.write("tempgpu.txt=\""+code(valor)+"\""+EndCom)
+				elif id==80:
 					#gpu core load"
-					ser.write("gpucoreusage.val="+replaceerro(dados['Value'])+""+EndCom)
-				if dados['id']==81:
+					ser.write("gpucoreusage.val="+replaceerro(valor)+""+EndCom)
+				elif id==81:
 					#gpu core load"
-					ser.write("gpucontrusage.val="+replaceerro(dados['Value'])+""+EndCom)
-				if dados['id']==82:
+					ser.write("gpucontrusage.val="+replaceerro(valor)+""+EndCom)
+				elif id==82:
 					#gpu core load"
-					ser.write("gpuvideousage.val="+replaceerro(dados['Value'])+""+EndCom)
-				if dados['id']==83:
+					ser.write("gpuvideousage.val="+replaceerro(valor)+""+EndCom)
+				elif id==83:
 					#gpu core load"
-					ser.write("gpumemusage.val="+replaceerro(dados['Value'])+""+EndCom)
+					ser.write("gpumemusage.val="+replaceerro(valor)+""+EndCom)
 					
-while(True): 			
+while(True): 
+	ser = iniciarSerial()			
  	preenchertela()					

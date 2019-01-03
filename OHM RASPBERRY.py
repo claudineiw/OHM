@@ -6,16 +6,10 @@ import urllib2
 import time
 import serial
 
+url = ("http://192.168.2.235:8085/data.json") #url dados pc
 
 
-def replaceerro(args):
-		return args.encode('iso-8859-1').replace(',1 %','').replace(',2 %','').replace(',3 %','').replace(',4 %','').replace(',5 %','').replace(',6 %','').replace(',7 %','').replace(',8 %','').replace(',9 %','').replace(',0 %','')
-			
-
-
-
-ser = serial.Serial(
-  port='/dev/ttyS0',
+ser = serial.Serial(port='/dev/ttyS0', #porta comunicação raspberry tela nextion
   baudrate = 9600,
   parity=serial.PARITY_NONE,
   stopbits=serial.STOPBITS_ONE,
@@ -24,17 +18,20 @@ ser = serial.Serial(
 )
 
 EndCom = "\xff\xff\xff"
-url = ("http://192.168.2.235:8085/data.json")
 
-while(True):
-        
-	
-	response = urllib2.urlopen(url) 
-	jsond = json.loads(response.read())		 
-	for dados in jsond:
-		if 'Value' in json.dumps(jsond[dados['id']]):
-		                if dados['id']==28:
-					#WaterCooler rpm                            
+
+
+def replaceerro(args):
+		return args.encode('iso-8859-1').replace(',1 %','').replace(',2 %','').replace(',3 %','').replace(',4 %','').replace(',5 %','').replace(',6 %','').replace(',7 %','').replace(',8 %','').replace(',9 %','').replace(',0 %','')
+			
+
+def preenchertela():	
+		response = urllib2.urlopen(url) 
+		jsond = json.loads(response.read())		 
+		for dados in jsond:
+			if 'Value' in json.dumps(jsond[dados['id']]):
+		        	if dados['id']==28:
+				   #WaterCooler rpm                            
 					ser.write("waterrpm.txt=\""+dados['Value'].encode('iso-8859-1')+"\""+EndCom)
 				if dados['id']==39:
 					#CPU Core #1"	                              
@@ -84,13 +81,7 @@ while(True):
 				if dados['id']==83:
 					#gpu core load"
 					ser.write("gpumemusage.val="+replaceerro(dados['Value'])+""+EndCom)
-				
-
-
 					
-		#else:
-			#print dados['id']
-			#print dados['Text']
-
-	
-	
+					
+while(True): 			
+	preenchertela()

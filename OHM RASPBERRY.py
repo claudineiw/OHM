@@ -7,14 +7,8 @@ import time
 import serial
 import RPi.GPIO as gpio
 import threading
-gpio.setwarnings(False)
+from neopixel import *
 
-gpio.setmode(gpio.BOARD)
-gpio.setup(40,gpio.OUT) #gpio 40 saida pwm cooler
-pwmFan = gpio.PWM(40,50) #define valor inicial
-
-url = ("http://192.168.2.235:8085/data.json") #url dados pc
-EndCom = "\xff\xff\xff" #final de write do nextion
 
 
 def pwmSet(args,stop):
@@ -107,30 +101,75 @@ def preenchertela():
 					ser.write("gpumemusage.val="+replaceerro(valor)+""+EndCom)
 
 
-stop_threads = False #False para parar Theread
-pwmValue = 50 #valor padrao pwm
-pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) )	 #cria Thread
-pwm.setDaemon(True)
-pwm.start()	 #inicia Theread
-			
-while(True):
-	ser = iniciarSerial()	#chama funcao para iniciar serial
-	ser.write('sendme'+EndCom) #verifica qual tela nextion esta
-	if 'x00' in (repr(ser.readline()).encode('iso-8859-1')):		# se for na tela 00 preencher dados pc
- 		preenchertela()	
-	else:
-	    ser.write('get va0.txt'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
-	    try: #try para possivel erro de retorno
-	    	pwmAtual= int((repr(ser.readline()).encode('iso-8859-1'))[2:-13]) #pega valor somente do pwm
-	    	if pwmValue != pwmAtual: #se o pwm for diferente do atual seta novo pwm a thread
-	        	pwmValue = pwmAtual	  #atribiu novo pwm
-	    		if pwm.isAlive():
-				stop_threads = True #atribui para thread
-				pwm.join()          #para thread
-				stop_threads = False #cancela parada thread
-				pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) ) #cria nova thread
-				pwm.setDaemon(True)
-				pwm.start()			   #inicia nova thread
 
-	    except ValueError:
-			pass
+
+
+# animacao leds
+def colorWipe(strip, color, wait_ms=50):
+	while (True):
+		"""Wipe color across display a pixel at a time."""
+		for i in range(strip.numPixels()):        
+			strip.setPixelColor(i, color)
+			strip.show()
+			time.sleep(wait_ms/1000.0)
+
+					
+					
+
+if __name__ == '__main__':
+	gpio.setwarnings(False) #desativa mensagem de perigo gpio
+	gpio.setmode(gpio.BOARD)
+
+   	 #dados pc
+	url = ("http://192.168.2.235:8085/data.json") #url dados pc
+	EndCom = "\xff\xff\xff" #final de write do nextion
+	
+	#pwm
+	stop_threads = False #False para parar Theread
+	gpio.setup(40,gpio.OUT) #gpio 40 saida pwm coole
+	pwmFan = gpio.PWM(40,50) #define valor inicial
+	pwmValue = 50 #valor padrao pwm
+	pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) )	 #cria Thread
+	pwm.setDaemon(True)
+	pwm.start()	 #inicia Theread
+	
+	
+	# LED
+	LED_COUNT      = 100   # numero de leds
+	LED_PIN        = 18      # gpio 18 para pwm
+	#LED_PIN        = 10      # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
+	LED_FREQ_HZ    = 800000  # frequencia das leds default 800hz
+	LED_DMA        = 10      # canal dma para gerar sinal deixar 10
+	LED_BRIGHTNESS = 255    #  brilho 0 baixo 255 alto
+	LED_INVERT     = False   # True para inverter polaridade
+	LED_CHANNEL    = 0       # trocar por '1' para usar GPIOs 13, 19, 41, 45 ou 53    	
+    	strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
+   	strip.begin() # inicializa biblioteca	
+	
+	
+	try:		
+		while(True):
+			ser = iniciarSerial()	#chama funcao para iniciar serial
+			ser.write('sendme'+EndCom) #verifica qual tela nextion esta
+			numeroTela = (repr(ser.readline()).encode('iso-8859-1')) #pega o numero da tela
+			if 'x00' in numeroTela:		# se for na tela 00 preencher dados pc
+				preenchertela()	
+			elif 'x01' in numeroTela:
+				ser.write('get va0.txt'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
+				pwmAtual= (repr(ser.readline()).encode('iso-8859-1'))[2:-13] #pega valor somente do pwm
+				print pwmAtual
+				if pwmAtual != "x1a":
+					pwmAtual = int(pwmAtual)
+					if pwmValue != pwmAtual: #se o pwm for diferente do atual seta novo pwm a thread
+						pwmValue = pwmAtual	  #atribiu novo pwm
+						stop_threads = True #atribui para thread
+						pwm.join()          #para thread
+						top_threads = False #cancela parada thread
+						pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) ) #cria nova thread
+						pwm.setDaemon(True)
+						pwm.start()			   #inicia nova thread
+
+	except ValueError:
+		pass
+	except KeyboardInterrupt:
+		pass

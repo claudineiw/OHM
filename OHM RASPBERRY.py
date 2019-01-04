@@ -105,13 +105,15 @@ def preenchertela():
 
 
 # animacao leds
-def colorWipe(strip, color, wait_ms=50):
+def colorWipe(strip, color,stop):
 	while (True):
 		"""Wipe color across display a pixel at a time."""
 		for i in range(strip.numPixels()):        
 			strip.setPixelColor(i, color)
 			strip.show()
-			time.sleep(wait_ms/1000.0)
+			time.sleep(0.5)
+		if stop():            	
+			break	
 
 					
 					
@@ -143,22 +145,21 @@ if __name__ == '__main__':
 	LED_BRIGHTNESS = 255    #  brilho 0 baixo 255 alto
 	LED_INVERT     = False   # True para inverter polaridade
 	LED_CHANNEL    = 0       # trocar por '1' para usar GPIOs 13, 19, 41, 45 ou 53    	
-    	strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
+    strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
    	strip.begin() # inicializa biblioteca	
-	
+	count = 0
 	
 	try:		
-		while(True):
+		while(True):			
 			ser = iniciarSerial()	#chama funcao para iniciar serial
 			ser.write('sendme'+EndCom) #verifica qual tela nextion esta
-			numeroTela = (repr(ser.readline()).encode('iso-8859-1')) #pega o numero da tela
+			numeroTela = code(repr(ser.readline())) #pega o numero da tela
 			if 'x00' in numeroTela:		# se for na tela 00 preencher dados pc
 				preenchertela()	
 			elif 'x01' in numeroTela:
 				ser.write('get va0.txt'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
-				pwmAtual= (repr(ser.readline()).encode('iso-8859-1'))[2:-13] #pega valor somente do pwm
-				print pwmAtual
-				if pwmAtual != "x1a":
+				pwmAtual= code(repr(ser.readline()))[2:-13] #pega valor somente do pwm			
+				if pwmAtual != "x1a":					
 					pwmAtual = int(pwmAtual)
 					if pwmValue != pwmAtual: #se o pwm for diferente do atual seta novo pwm a thread
 						pwmValue = pwmAtual	  #atribiu novo pwm
@@ -168,6 +169,9 @@ if __name__ == '__main__':
 						pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) ) #cria nova thread
 						pwm.setDaemon(True)
 						pwm.start()			   #inicia nova thread
+			elif 'x01' in numeroTela:
+				leds = threading.Thread(target=pwmSet,args=(colorWipe,strip, Color(255,255,255),lambda: stop_threads) ) #cria nova thread				
+			
 
 	except ValueError:
 		pass

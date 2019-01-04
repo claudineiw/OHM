@@ -111,7 +111,7 @@ def colorWipe(strip, color,stop):
 		for i in range(strip.numPixels()):        
 			strip.setPixelColor(i, color)
 			strip.show()
-			time.sleep(0.5)
+			time.sleep(0.05)
 		if stop():            	
 			break	
 
@@ -127,17 +127,17 @@ if __name__ == '__main__':
 	EndCom = "\xff\xff\xff" #final de write do nextion
 	
 	#pwm
-	stop_threads = False #False para parar Theread
+	stop_threads_pwm = False #False para parar Theread
 	gpio.setup(40,gpio.OUT) #gpio 40 saida pwm coole
 	pwmFan = gpio.PWM(40,50) #define valor inicial
 	pwmValue = 50 #valor padrao pwm
-	pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) )	 #cria Thread
+	pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads_pwm) )	 #cria Thread
 	pwm.setDaemon(True)
 	pwm.start()	 #inicia Theread
 	
 	
 	# LED
-	LED_COUNT      = 100   # numero de leds
+	LED_COUNT      = 28   # numero de leds
 	LED_PIN        = 18      # gpio 18 para pwm
 	#LED_PIN        = 10      # GPIO pin connected to the pixels (10 uses SPI /dev/spidev0.0).
 	LED_FREQ_HZ    = 800000  # frequencia das leds default 800hz
@@ -147,10 +147,15 @@ if __name__ == '__main__':
 	LED_CHANNEL    = 0       # trocar por '1' para usar GPIOs 13, 19, 41, 45 ou 53    	
     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
    	strip.begin() # inicializa biblioteca	
-	count = 0
+	stop_threads_leds = False #False para parar Theread
+	leds = threading.Thread(target=colorWipe,args=(strip, Color(0,255,255),lambda: stop_threads_leds) ) #cria nova thread	
+	leds.setDaemon(True)
+	leds.start()	 #inicia Theread
+	
 	
 	try:		
-		while(True):			
+		while(True):
+			
 			ser = iniciarSerial()	#chama funcao para iniciar serial
 			ser.write('sendme'+EndCom) #verifica qual tela nextion esta
 			numeroTela = code(repr(ser.readline())) #pega o numero da tela
@@ -163,17 +168,29 @@ if __name__ == '__main__':
 					pwmAtual = int(pwmAtual)
 					if pwmValue != pwmAtual: #se o pwm for diferente do atual seta novo pwm a thread
 						pwmValue = pwmAtual	  #atribiu novo pwm
-						stop_threads = True #atribui para thread
+						stop_threads_pwm = True #atribui para thread
 						pwm.join()          #para thread
-						top_threads = False #cancela parada thread
-						pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads) ) #cria nova thread
+						stop_threads_pwm = False #cancela parada thread
+						pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads_pwm) ) #cria nova thread
 						pwm.setDaemon(True)
 						pwm.start()			   #inicia nova thread
 			elif 'x01' in numeroTela:
-				leds = threading.Thread(target=pwmSet,args=(colorWipe,strip, Color(255,255,255),lambda: stop_threads) ) #cria nova thread				
+				leds = threading.Thread(target=colorWipe,args=(strip, Color(255,255,255),lambda: stop_threads_leds) ) #cria nova thread				
 			
 
 	except ValueError:
 		pass
 	except KeyboardInterrupt:
-		pass
+		pass						
+		stop_threads_pwm = True #atribui para thread
+	    pwm.join()          #para thread
+		stop_threads_leds = True
+		leds.join()
+		stop_threads_leds = False
+		leds = threading.Thread(target=colorWipe,args=(strip, Color(0,0,0),lambda: stop_threads_leds) ) #cria nova thread
+		leds.setDaemon(True)
+		leds.start()
+		time.sleep(5)
+		stop_threads_leds = True
+		leds.join()	
+		

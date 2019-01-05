@@ -1,5 +1,5 @@
 #!/usr/bin/env python2
-# coding: utf-8
+# -*- coding: utf-8 -*-
 import json
 import requests
 import urllib2
@@ -7,6 +7,7 @@ import time
 import serial
 import RPi.GPIO as gpio
 import threading
+import Adafruit_DHT
 from neopixel import *
 
 
@@ -105,7 +106,7 @@ def preenchertela():
 
 
 # animacao leds
-def colorWipe(strip, color,stop):
+def colorWipe(strip,color,stop):
 	while (True):
 		"""Wipe color across display a pixel at a time."""
 		for i in range(strip.numPixels()):        
@@ -114,6 +115,17 @@ def colorWipe(strip, color,stop):
 			time.sleep(0.05)
 		if stop():            	
 			break	
+
+
+#sensor umidade e temperatura
+def sensorTempUmidade(pinoGpioDoSensor,tipoSensor):	
+	umidade,temperatura= Adafruit_DHT.read_retry(tipoSensor,pinoGpioDoSensor)
+	temperatura = str(temperatura)
+	umidade = str(umidade)
+	ser.write("tempAmbiente.txt=\""+code(temperatura)+"\""+EndCom)
+	ser.write("umidade.txt=\""+code(umidade)+"\""+EndCom)
+		
+
 
 #tratamento erros do Hex
 def tratamentoHex(args):
@@ -128,6 +140,7 @@ def tratamentoHex(args):
 if __name__ == '__main__':
 	gpio.setwarnings(False) #desativa mensagem de perigo gpio
 	gpio.setmode(gpio.BOARD)
+	ser = iniciarSerial()	#chama funcao para iniciar serial
 
    	 #dados pc
 	url = ("http://192.168.2.235:8085/data.json") #url dados pc
@@ -152,7 +165,7 @@ if __name__ == '__main__':
 	LED_BRIGHTNESS = 255    #  brilho 0 baixo 255 alto
 	LED_INVERT     = False   # True para inverter polaridade
 	LED_CHANNEL    = 0       # trocar por '1' para usar GPIOs 13, 19, 41, 45 ou 53    	
-    strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
+        strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
    	strip.begin() # inicializa biblioteca	
 	stop_threads_leds = False #False para parar Theread
 	ledRed = 255
@@ -161,22 +174,25 @@ if __name__ == '__main__':
 	leds = threading.Thread(target=colorWipe,args=(strip, Color(ledGreen,ledRed,ledBlue),lambda: stop_threads_leds) ) #cria nova thread	
 	leds.setDaemon(True)
 	leds.start()	 #inicia Theread
-	
+
+
 	
 	
 	try:		
-		while(True):
-			
-			ser = iniciarSerial()	#chama funcao para iniciar serial
+		while(True):		
+
 			ser.write('sendme'+EndCom) #verifica qual tela nextion esta
 			numeroTela = code(repr(ser.readline())) #pega o numero da tela
 			if 'x00' in numeroTela:		# se for na tela 00 preencher dados pc
 				preenchertela()	
+				tempUmidade=threading.Thread(target=sensorTempUmidade,args=(25,Adafruit_DHT.DHT11) ) #inicia Theread umidade e temperatura local
+				tempUmidade.setDaemon(True)
+				tempUmidade.start()	 #inicia Theread	
+				
 			elif 'x01' in numeroTela:
-				ser.write('get page1.va0.txt'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
-				pwmAtual= code(repr(ser.readline()))[2:-13] #pega valor somente do pwm			
-				if pwmAtual != "x1a":					
-					pwmAtual = int(pwmAtual)
+				ser.write('get page1.vPwm.val'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
+				pwmAtual= tratamentoHex(repr(ser.readline()))  #pega valor somente do pwm			
+				if pwmAtual in range(0,256):	
 					if pwmValue != pwmAtual: #se o pwm for diferente do atual seta novo pwm a thread
 						pwmValue = pwmAtual	  #atribiu novo pwm
 						stop_threads_pwm = True #atribui para thread
@@ -195,15 +211,23 @@ if __name__ == '__main__':
 
 				ser.write('get page2.nGreen.val'+EndCom) #valor led verde
 				tempGreen=tratamentoHex(repr(ser.readline())) #tratamento de excessao
-				if ledRed != tempRed or ledBlue != tempBlue or ledGreen != tempGreen: #tratamento de excessao
-					teste = ""+str(tempRed)+str(tempBlue)+str(tempGreen) #tratamento de excessao
-					if "x1a" not in teste: #tratamento de excessao
+
+				ser.write('get page2.nBrilho.val'+EndCom) #valor led verde
+				tempBrilho=tratamentoHex(repr(ser.readline())) #tratamento de excessao
+				
+
+	
+				if ledRed != tempRed or ledBlue != tempBlue or ledGreen != tempGreen or LED_BRIGHTNESS != tempBrilho: #tratamento de excessao					
+					if tempRed in range(0,256) and tempBlue in range(0,256) and tempGreen in range(0,256) and tempBrilho in range(0,256):
 						ledRed=tempRed
 						ledBlue=tempBlue
 						ledGreen=tempGreen
+					        LED_BRIGHTNESS = tempBrilho
 						stop_threads_leds = True #True para parar Theread
 						leds.join()
 						stop_threads_leds = False #False para parar Theread
+						strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
+   						strip.begin() # inicializa biblioteca
 						leds = threading.Thread(target=colorWipe,args=(strip, Color(ledGreen,ledRed,ledBlue),lambda: stop_threads_leds) ) #cria nova thread
 						leds.setDaemon(True)
 						leds.start()
@@ -217,7 +241,7 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		pass						
 		stop_threads_pwm = True #atribui para thread
-	        pwm.join()          #para thread
+	    pwm.join()          #para thread
 		stop_threads_leds = True
 		leds.join()
 		stop_threads_leds = False

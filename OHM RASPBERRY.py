@@ -115,6 +115,13 @@ def colorWipe(strip, color,stop):
 		if stop():            	
 			break	
 
+#tratamento erros do Hex
+def tratamentoHex(args):
+	if len(args) == 31:
+		return int(args[4:-25],16) 		
+	elif len(args) == 28: 
+		return int(hex(ord(args[2:-25]))[2:],16) 
+
 					
 					
 
@@ -148,9 +155,13 @@ if __name__ == '__main__':
     strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
    	strip.begin() # inicializa biblioteca	
 	stop_threads_leds = False #False para parar Theread
-	leds = threading.Thread(target=colorWipe,args=(strip, Color(0,255,255),lambda: stop_threads_leds) ) #cria nova thread	
+	ledRed = 255
+	ledBlue = 255
+	ledGreen = 0
+	leds = threading.Thread(target=colorWipe,args=(strip, Color(ledGreen,ledRed,ledBlue),lambda: stop_threads_leds) ) #cria nova thread	
 	leds.setDaemon(True)
 	leds.start()	 #inicia Theread
+	
 	
 	
 	try:		
@@ -162,7 +173,7 @@ if __name__ == '__main__':
 			if 'x00' in numeroTela:		# se for na tela 00 preencher dados pc
 				preenchertela()	
 			elif 'x01' in numeroTela:
-				ser.write('get va0.txt'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
+				ser.write('get page1.va0.txt'+EndCom) #se for na tela 01 pedir valor da variavel que contem o pwm
 				pwmAtual= code(repr(ser.readline()))[2:-13] #pega valor somente do pwm			
 				if pwmAtual != "x1a":					
 					pwmAtual = int(pwmAtual)
@@ -174,8 +185,31 @@ if __name__ == '__main__':
 						pwm = threading.Thread(target=pwmSet,args=(pwmValue,lambda: stop_threads_pwm) ) #cria nova thread
 						pwm.setDaemon(True)
 						pwm.start()			   #inicia nova thread
-			elif 'x01' in numeroTela:
-				leds = threading.Thread(target=colorWipe,args=(strip, Color(255,255,255),lambda: stop_threads_leds) ) #cria nova thread				
+
+			elif 'x02' in numeroTela:				
+				ser.write('get page2.nRed.val'+EndCom) #valor led vermelha
+				tempRed=tratamentoHex(repr(ser.readline())) #tratamento de excessao
+
+				ser.write('get page2.nBlue.val'+EndCom) #valor led azul
+				tempBlue=tratamentoHex(repr(ser.readline())) #tratamento de excessao		
+
+				ser.write('get page2.nGreen.val'+EndCom) #valor led verde
+				tempGreen=tratamentoHex(repr(ser.readline())) #tratamento de excessao
+				if ledRed != tempRed or ledBlue != tempBlue or ledGreen != tempGreen: #tratamento de excessao
+					teste = ""+str(tempRed)+str(tempBlue)+str(tempGreen) #tratamento de excessao
+					if "x1a" not in teste: #tratamento de excessao
+						ledRed=tempRed
+						ledBlue=tempBlue
+						ledGreen=tempGreen
+						stop_threads_leds = True #True para parar Theread
+						leds.join()
+						stop_threads_leds = False #False para parar Theread
+						leds = threading.Thread(target=colorWipe,args=(strip, Color(ledGreen,ledRed,ledBlue),lambda: stop_threads_leds) ) #cria nova thread
+						leds.setDaemon(True)
+						leds.start()
+	
+				
+		
 			
 
 	except ValueError:
@@ -183,7 +217,7 @@ if __name__ == '__main__':
 	except KeyboardInterrupt:
 		pass						
 		stop_threads_pwm = True #atribui para thread
-	    pwm.join()          #para thread
+	        pwm.join()          #para thread
 		stop_threads_leds = True
 		leds.join()
 		stop_threads_leds = False

@@ -212,7 +212,8 @@ def serverTcpLocal(ser,stop):
 			if not msg: 
 				 break
         		if msg == "page0":
-        			ser.write("page 0"+EndCom)																				
+        			ser.write("page 0"+EndCom)
+				break																				
         		elif msg == "page1":
         			ser.write("page 1"+EndCom)
         		elif msg == "page2":
@@ -222,26 +223,31 @@ def serverTcpLocal(ser,stop):
 				ser.write("page1.fanpwm.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page1.vPwm.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page0.vPwm.val="+replaceerro(valor)+""+EndCom)
+				pwm=valor
 			elif msg == "setRed":
 				valor=con.recv(1024)
 				ser.write("page2.nRed.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page2.red.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page0.vRed.val="+replaceerro(valor)+""+EndCom)
+				red=valor
 			elif msg == "setBlue":
 				valor=con.recv(1024)
 				ser.write("page2.nBlue.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page2.blue.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page0.vBlue.val="+replaceerro(valor)+""+EndCom)
+				blue=valor
 			elif msg == "setGreen":
 				valor=con.recv(1024)
 				ser.write("page2.nGreen.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page2.green.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page0.vGreen.val="+replaceerro(valor)+""+EndCom)
+				green=valor
 			elif msg == "setBrilho":
 				valor=con.recv(1024)
 				ser.write("page2.nBrilho.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page2.brilho.val="+replaceerro(valor)+""+EndCom)
 				ser.write("page0.vBrilho.val="+replaceerro(valor)+""+EndCom)
+				brilho=valor
 
 			elif msg == "rpm":
 				con.send(rpm)
@@ -400,7 +406,7 @@ if __name__ == '__main__':
 	LED_BRIGHTNESS = 255    #  brilho 0 baixo 255 alto
 	LED_INVERT     = False   # True para inverter polaridade
 	LED_CHANNEL    = 0       # trocar por '1' para usar GPIOs 13, 19, 41, 45 ou 53    	
-        strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
+    strip = Adafruit_NeoPixel(LED_COUNT, LED_PIN, LED_FREQ_HZ, LED_DMA, LED_INVERT, LED_BRIGHTNESS, LED_CHANNEL) # cria objeto NeoPixel    	
    	strip.begin() # inicializa biblioteca	
 	stop_threads_leds = False #False para parar Theread
 	ledRed = 255
